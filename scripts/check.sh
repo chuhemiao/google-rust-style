@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Non-mutating Rust quality checks for ordinary Cargo projects.
+# Rust quality checks for ordinary Cargo projects.
 set -Eeuo pipefail
 
 usage() {
@@ -7,12 +7,14 @@ usage() {
 Usage: check.sh [CARGO_PROJECT_DIRECTORY] [--skip-clippy] [--skip-test]
 
 Runs cargo fmt --check, cargo clippy, and cargo test in the supplied project.
-Does not install toolchains or alter dependency manifests. Cargo may create
-local build artifacts in target/ while compiling.
+Requires Bash, Cargo, rustfmt, and (unless skipped) Clippy.
+Runs the project's build scripts and tests. Cargo may fetch dependencies,
+update Cargo.lock, and create build artifacts. Use only on trusted projects.
 USAGE
 }
 
 project='.'
+project_set=false
 skip_clippy=false
 skip_test=false
 
@@ -22,7 +24,7 @@ for arg in "$@"; do
     --skip-clippy) skip_clippy=true ;;
     --skip-test) skip_test=true ;;
     -*) echo "Unknown option: $arg" >&2; usage >&2; exit 2 ;;
-    *) if [[ "$project" != '.' ]]; then echo 'Only one project directory is supported.' >&2; exit 2; fi; project="$arg" ;;
+    *) if [[ "$project_set" == true ]]; then echo 'Only one project directory is supported.' >&2; exit 2; fi; project="$arg"; project_set=true ;;
   esac
 done
 

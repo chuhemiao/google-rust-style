@@ -13,6 +13,26 @@ repository-wide stylistic rewrite.
 - [ ] Concurrent state is intentionally shared, synchronized, and bounded.
 - [ ] Edge-case and error-path tests cover changed behavior.
 
+## Conditional boundary checks (skill-added engineering guidance)
+
+Use only the sections relevant to the diff. These checks complement Google
+style guidance; they are not Chromium/Fuchsia requirements.
+
+- [ ] Async: partial effects survive cancellation coherently; required cleanup
+  has an explicit owner and completion path.
+- [ ] Spawned/blocking work: failures observed and shutdown/resource lifetime
+  defined; dropping a handle is not assumed to stop work.
+- [ ] Locks across `await`: deadlock, executor blocking and reentrancy considered.
+- [ ] Unsafe: safe entry points establish aliasing, provenance, alignment,
+  initialization, bounds and lifetime obligations; local `SAFETY:` gives evidence.
+- [ ] Pin/manual `Send`/`Sync`: projection, destruction, captured fields and
+  callback thread obligations justified across the whole abstraction.
+- [ ] FFI: ABI/layout, allocator pairing, buffer validity, callback lifetime and
+  thread affinity, error translation and unwind policy agree on both sides.
+
+Read [async-concurrency.md](async-concurrency.md) or
+[unsafe-ffi.md](unsafe-ffi.md) when the corresponding boundary is present.
+
 ## Public API quality
 
 - [ ] Code classified as application or library, with appropriate rigor.
@@ -41,6 +61,13 @@ repository-wide stylistic rewrite.
 - [ ] Clippy/linter run against the relevant targets when available.
 - [ ] Tests executed for the affected scope, with results accurately reported.
 - [ ] Build/toolchain/CI constraints noted rather than silently bypassed.
+
+- [ ] Relevant supported feature/target/MSRV/`no_std` combinations checked;
+  unavailable lanes and optional-tool limits stated.
+- [ ] Defect cause verified, behavioral regression established when reproducible,
+  and bounded same-pattern scan completed.
+- [ ] Checks are fresh after the final material edit; skips, retries and
+  flakiness reported without overstating proof. See [validation.md](validation.md).
 
 ## Suggested review output
 

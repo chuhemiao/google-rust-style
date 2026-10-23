@@ -40,9 +40,25 @@ of the Google Rust Style Guide, not a verbatim or official Google publication.
 5. Use stable Rust by default. Do not enable unstable features or nightly-only
    formatter settings merely to satisfy a cosmetic preference.
 
-Full rules and exceptions: [references/rules.md](references/rules.md).
-Code examples: [references/examples.md](references/examples.md).
-Review checklist: [references/review-checklist.md](references/review-checklist.md).
+Read [references/rules.md](references/rules.md) when a rule's exact scope or
+exception affects a decision. Consult [references/examples.md](references/examples.md)
+for concrete alternatives when implementing, and
+[references/review-checklist.md](references/review-checklist.md) when reviewing.
+Resolve these paths relative to this installed skill directory, regardless of
+the project's working directory. No tool-specific plugin or other skill is
+required.
+
+Read only the additional references relevant to the changed boundary:
+
+- [Async and concurrency](references/async-concurrency.md): futures, cancellation,
+  spawned/blocking work, shutdown, or locks across `await`.
+- [Unsafe and FFI](references/unsafe-ffi.md): unsafe code, safe wrappers, pinning,
+  foreign interfaces, or manual `Send`/`Sync` implementations.
+- [Validation](references/validation.md): selecting checks for changed behavior,
+  fixing a defect, or assessing feature/toolchain/target support.
+
+These three references are this skill's engineering guidance, complementary to
+Google's style rules; they do not impose Chromium/Fuchsia policies on other code.
 
 ## Default implementation rules
 
@@ -135,6 +151,9 @@ Review checklist: [references/review-checklist.md](references/review-checklist.m
    implement directly and keep changes scoped.
 3. Reuse existing dependencies and established abstractions where suitable.
    Avoid redundant crates and unnecessary compatibility layers.
+   Preserve the crate's edition, MSRV (`rust-version`), feature combinations,
+   and `no_std` requirements when present; newer syntax or APIs must fit the
+   supported toolchain.
 
 **While implementing**
 
@@ -143,11 +162,20 @@ Review checklist: [references/review-checklist.md](references/review-checklist.m
 5. Add focused tests for normal, boundary, and error cases. Use the project's
    testing framework; standard Cargo projects can use `#[test]`/`#[tokio::test]`
    as appropriate. Google-specific harnesses apply only to their projects.
-6. If breaking a public API, identify impact and provide a migration path.
+6. For defects, verify the cause and establish a regression that fails for the
+   reported behavior before repair when safely reproducible. Scan the affected
+   owner and callers for the same mechanism; keep the scan bounded. Setup,
+   import, or unrelated compilation failures are not behavioral evidence. If
+   reproduction is unavailable, explain the limit and avoid claiming a proven
+   fix. After two failures with the same approach, change the hypothesis or
+   report the concrete blocker before retrying.
+7. If breaking a public API, identify impact and provide a migration path.
 
 **After implementing**
 
-7. Check formatting, linting, and tests where the tools are available:
+8. Select checks using [validation](references/validation.md), then run them
+   after the final material edit. For ordinary Cargo projects, typical baseline
+   commands are:
 
    ```bash
    cargo fmt --all -- --check
@@ -155,13 +183,17 @@ Review checklist: [references/review-checklist.md](references/review-checklist.m
    cargo test --workspace
    ```
 
-   Or run `scripts/check.sh` from the Skill's directory, passing the Cargo
-   project directory. For very large repositories, select the impacted package
-   and follow the existing CI/testing procedure rather than running unrelated
-   workspace jobs.
-8. Verify no new panic paths on untrusted data, unjustified `unsafe`, hidden
+   Or run `bash <installed-skill-directory>/scripts/check.sh <project-directory>`.
+   The helper requires Bash, Cargo and the selected rustfmt/Clippy components;
+   it runs project build scripts/tests and Cargo may fetch dependencies,
+   update `Cargo.lock`, and write build artifacts. Follow the project's
+   existing locked/offline/feature/target checks where required, rather than
+   assuming this helper covers them. For very large repositories, select the
+   impacted package and follow the existing CI/testing procedure rather than
+   running unrelated workspace jobs.
+9. Verify no new panic paths on untrusted data, unjustified `unsafe`, hidden
    unnecessary clones, leaked implementation details, or unused dependencies.
-9. Report: changed behavior, key design choices, verification commands/results,
+10. Report: changed behavior, key design choices, verification commands/results,
    and any intentional guideline exceptions. Never claim tests passed unless
    they actually ran successfully.
 
